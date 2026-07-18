@@ -26,8 +26,12 @@ function HomeContent() {
   }, [session]);
 
   useEffect(() => {
-    // Apply night mode class to body
-    document.body.classList.toggle('night', nightMode);
+    // Apply dark mode class to body
+    if (nightMode) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
   }, [nightMode]);
 
   if (status === 'loading') {

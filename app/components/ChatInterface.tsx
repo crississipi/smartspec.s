@@ -234,7 +234,20 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
           <button
-            onClick={() => setNightMode(!nightMode)}
+            onClick={async () => {
+              const newMode = !nightMode;
+              setNightMode(newMode);
+              // Save preference to database
+              try {
+                await fetch('/api/user', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ nightMode: newMode }),
+                });
+              } catch (error) {
+                console.error('Failed to save theme preference:', error);
+              }
+            }}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
           >
             {nightMode ? <FaSun size={16} /> : <FaMoon size={16} />}
