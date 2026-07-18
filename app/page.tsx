@@ -26,11 +26,11 @@ function HomeContent() {
   }, [session]);
 
   useEffect(() => {
-    // Apply dark mode class to body
+    // Apply dark mode class to html element (required for Tailwind dark mode)
     if (nightMode) {
-      document.body.classList.add('dark');
+      document.documentElement.classList.add('dark');
     } else {
-      document.body.classList.remove('dark');
+      document.documentElement.classList.remove('dark');
     }
   }, [nightMode]);
 

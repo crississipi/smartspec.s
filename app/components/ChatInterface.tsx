@@ -302,7 +302,7 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
                 {[
-                  'Gaming PC under $1000',
+                  'Gaming PC under PHP 30,000',
                   'Workstation for video editing',
                   'Budget office setup',
                   'Upgrade my RAM',
