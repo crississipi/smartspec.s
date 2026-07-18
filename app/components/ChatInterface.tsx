@@ -24,6 +24,30 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
   const [loading, setLoading] = useState(false);
   const [hoveredThreadId, setHoveredThreadId] = useState<number | null>(null);
 
+  // Theme colors
+  const theme = {
+    light: {
+      bg: '#ffffff',
+      bgSecondary: '#f7f7f8',
+      text: '#0d0d0d',
+      textSecondary: '#565869',
+      border: '#e5e7eb',
+      sidebar: '#ffffff',
+      hover: '#f7f7f8',
+    },
+    dark: {
+      bg: '#0d0d0d',
+      bgSecondary: '#1a1a1a',
+      text: '#ececf1',
+      textSecondary: '#b4b4bc',
+      border: '#404052',
+      sidebar: '#111111',
+      hover: '#1a1a1a',
+    },
+  };
+
+  const current = nightMode ? theme.dark : theme.light;
+
   useEffect(() => {
     loadThreads();
   }, []);
@@ -163,16 +187,32 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
   };
 
   return (
-    <div className="flex h-screen bg-white dark:bg-[#0a0a0a]">
+    <div 
+      className="flex h-screen"
+      style={{
+        backgroundColor: current.bg,
+        color: current.text,
+        transition: 'all 0.2s ease',
+      }}
+    >
       {/* Sidebar */}
       <motion.div
         initial={{ width: 0, opacity: 0 }}
         animate={{ width: sidebarOpen ? 260 : 0, opacity: sidebarOpen ? 1 : 0 }}
-        className="bg-white dark:bg-[#111111] border-r border-gray-200 dark:border-gray-800 flex flex-col"
-        style={{ overflow: 'hidden' }}
+        style={{
+          backgroundColor: current.sidebar,
+          borderRight: `1px solid ${current.border}`,
+          overflow: 'hidden',
+        }}
+        className="flex flex-col"
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+        <div 
+          style={{
+            borderBottom: `1px solid ${current.border}`,
+            padding: '1rem',
+          }}
+        >
           <button
             onClick={async () => {
               const res = await fetch('/api/threads', {
@@ -186,34 +226,89 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
                 setCurrentThreadId(data.thread.id);
               }
             }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.5rem',
+              backgroundColor: nightMode ? '#2a2a2a' : '#f7f7f8',
+              color: current.text,
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = nightMode ? '#333333' : '#ececf1';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = nightMode ? '#2a2a2a' : '#f7f7f8';
+            }}
           >
             <FaPlus size={16} />
-            <span className="text-sm font-medium">New chat</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>New chat</span>
           </button>
         </div>
 
         {/* Chat History */}
-        <div className="flex-1 overflow-y-auto p-2">
+        <div 
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '0.5rem',
+          }}
+        >
           {threads.map((thread) => (
             <div
               key={thread.id}
               onMouseEnter={() => setHoveredThreadId(thread.id)}
               onMouseLeave={() => setHoveredThreadId(null)}
-              className="mb-2 relative"
+              style={{
+                marginBottom: '0.5rem',
+              }}
             >
               <div
-                className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 justify-between group ${
-                  currentThreadId === thread.id
-                    ? 'bg-gray-200 dark:bg-gray-800'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-900'
-                }`}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  justifyContent: 'space-between',
+                  backgroundColor: 
+                    currentThreadId === thread.id 
+                      ? (nightMode ? '#2a2a2a' : '#ececf1')
+                      : 'transparent',
+                  transition: 'background-color 0.2s ease',
+                }}
               >
                 <button
                   onClick={() => setCurrentThreadId(thread.id)}
-                  className="flex-1 text-left"
+                  style={{
+                    flex: 1,
+                    textAlign: 'left',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: current.text,
+                    fontSize: '0.875rem',
+                    padding: 0,
+                  }}
                 >
-                  <span className="text-sm truncate block">{thread.title}</span>
+                  <span 
+                    style={{
+                      fontSize: '0.875rem',
+                      display: 'block',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {thread.title}
+                  </span>
                 </button>
                 {hoveredThreadId === thread.id && (
                   <button
@@ -221,9 +316,27 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
                       e.stopPropagation();
                       deleteThread(thread.id);
                     }}
-                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex-shrink-0"
+                    style={{
+                      padding: '0.25rem',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: '0.25rem',
+                      cursor: 'pointer',
+                      color: '#ef4444',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'background-color 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = nightMode ? '#2a2a2a' : '#f0f0f0';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
                   >
-                    <FaTrash size={14} className="text-gray-500 hover:text-red-500" />
+                    <FaTrash size={14} />
                   </button>
                 )}
               </div>
@@ -232,7 +345,15 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
+        <div 
+          style={{
+            padding: '1rem',
+            borderTop: `1px solid ${current.border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+          }}
+        >
           <button
             onClick={async () => {
               const newMode = !nightMode;
@@ -248,26 +369,117 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
                 console.error('Failed to save theme preference:', error);
               }
             }}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.875rem',
+              borderRadius: '0.5rem',
+              backgroundColor: 'transparent',
+              color: current.text,
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = current.hover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
           >
             {nightMode ? <FaSun size={16} /> : <FaMoon size={16} />}
             <span>{nightMode ? 'Light mode' : 'Dark mode'}</span>
           </button>
-          <div className="relative">
+
+          <div style={{ position: 'relative' }}>
             <button
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.875rem',
+                borderRadius: '0.5rem',
+                backgroundColor: 'transparent',
+                color: current.text,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = current.hover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+              <div 
+                style={{
+                  width: '1.5rem',
+                  height: '1.5rem',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                }}
+              >
                 {user?.email?.charAt(0).toUpperCase()}
               </div>
-              <span className="truncate flex-1">{user?.email}</span>
+              <span 
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1,
+                }}
+              >
+                {user?.email}
+              </span>
             </button>
+
             {profileMenuOpen && (
-              <div className="absolute bottom-full w-full mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+              <div 
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  width: '100%',
+                  marginBottom: '0.5rem',
+                  backgroundColor: current.sidebar,
+                  border: `1px solid ${current.border}`,
+                  borderRadius: '0.5rem',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                }}
+              >
                 <button
                   onClick={onLogout}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 0.75rem',
+                    fontSize: '0.875rem',
+                    color: '#dc2626',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = current.hover;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   <FaSignOutAlt size={14} />
                   Logout
@@ -281,26 +493,90 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0a0a0a]">
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            height: '4rem',
+            paddingLeft: '1.5rem',
+            paddingRight: '1.5rem',
+            borderBottom: `1px solid ${current.border}`,
+            backgroundColor: current.bg,
+            color: current.text,
+          }}
+        >
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-lg transition-colors"
+            style={{
+              padding: '0.5rem',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              color: current.text,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = current.hover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
           >
             {sidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
           </button>
-          <h1 className="text-lg font-semibold">SmartSpecs</h1>
-          <div className="w-8" />
+          <h1 style={{ fontSize: '1.125rem', fontWeight: '600' }}>SmartSpecs</h1>
+          <div style={{ width: '2rem' }} />
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div 
+          style={{
+            flex: 1,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: current.bg,
+            color: current.text,
+          }}
+        >
           {currentThreadId && messages.length === 0 && !loading ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-              <h2 className="text-3xl font-bold mb-4">SmartSpecs AI</h2>
-              <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md">
+            <div 
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: '1rem',
+              }}
+            >
+              <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                SmartSpecs AI
+              </h2>
+              <p 
+                style={{
+                  color: current.textSecondary,
+                  marginBottom: '2rem',
+                  maxWidth: '28rem',
+                }}
+              >
                 Get personalized PC component recommendations. Start a conversation with your budget and requirements.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+              <div 
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '1rem',
+                  width: '100%',
+                  maxWidth: '56rem',
+                }}
+              >
                 {[
                   'Gaming PC under PHP 30,000',
                   'Workstation for video editing',
@@ -310,22 +586,49 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
                   <button
                     key={i}
                     onClick={() => handleSendMessage(prompt)}
-                    className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors text-left"
+                    style={{
+                      padding: '1rem',
+                      borderRadius: '0.5rem',
+                      border: `1px solid ${current.border}`,
+                      backgroundColor: 'transparent',
+                      color: current.text,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      fontSize: '0.875rem',
+                      transition: 'background-color 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = current.hover;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
                   >
-                    <span className="text-sm">{prompt}</span>
+                    {prompt}
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <MessageList messages={messages} />
+            <MessageList messages={messages} nightMode={nightMode} />
           )}
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0a0a0a] p-4">
-          <div className="max-w-4xl mx-auto">
-            <MessageInput onSend={handleSendMessage} disabled={loading} loading={loading} />
+        <div 
+          style={{
+            borderTop: `1px solid ${current.border}`,
+            backgroundColor: current.bg,
+            padding: '1rem',
+          }}
+        >
+          <div style={{ maxWidth: '56rem', margin: '0 auto' }}>
+            <MessageInput 
+              onSend={handleSendMessage} 
+              disabled={loading} 
+              loading={loading}
+              nightMode={nightMode}
+            />
           </div>
         </div>
       </div>

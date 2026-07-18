@@ -51,9 +51,10 @@ interface RecommendationData {
 
 interface RecommendationDisplayProps {
   data: RecommendationData;
+  nightMode?: boolean;
 }
 
-export default function RecommendationDisplay({ data }: RecommendationDisplayProps) {
+export default function RecommendationDisplay({ data, nightMode = false }: RecommendationDisplayProps) {
   const [selectedTier, setSelectedTier] = useState<string>('balanced');
   
   // Safety check - ensure data exists and has required properties

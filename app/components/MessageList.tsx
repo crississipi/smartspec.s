@@ -17,6 +17,7 @@ interface Message {
 interface MessageListProps {
   messages: Message[];
   isLoading?: boolean;
+  nightMode?: boolean;
 }
 
 function detectMessageType(content: string): string {
@@ -42,7 +43,7 @@ function detectMessageType(content: string): string {
   return 'general';
 }
 
-export default function MessageList({ messages, isLoading = false }: MessageListProps) {
+export default function MessageList({ messages, isLoading = false, nightMode = false }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,33 +55,75 @@ export default function MessageList({ messages, isLoading = false }: MessageList
   const loadingMessageType = lastUserMessage ? detectMessageType(lastUserMessage.content) : 'general';
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-4">
+    <div 
+      style={{
+        flex: 1,
+        overflowY: 'auto',
+        backgroundColor: nightMode ? '#0d0d0d' : '#ffffff',
+        color: nightMode ? '#ececf1' : '#0d0d0d',
+      }}
+    >
+      <div style={{ maxWidth: '56rem', margin: '0 auto', padding: '2rem 1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {messages.map((message, index) => (
           <motion.div
             key={message.id || index}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            style={{
+              display: 'flex',
+              justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+            }}
           >
             {message.role === 'user' ? (
-              <div className="max-w-2xl rounded-lg px-4 py-3 bg-blue-600 dark:bg-blue-700 text-white">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
+              <div 
+                style={{
+                  maxWidth: '32rem',
+                  borderRadius: '0.5rem',
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                }}
+              >
+                <p 
+                  style={{
+                    fontSize: '0.875rem',
+                    lineHeight: '1.5rem',
+                    whiteSpace: 'pre-wrap',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {message.content}
+                </p>
               </div>
             ) : (
-              <div className="max-w-full w-full">
+              <div style={{ maxWidth: '100%', width: '100%' }}>
                 {(message.dataType === 'recommendation' || message.dataType === 'upgrade_suggestion') && message.data ? (
-                  <RecommendationDisplay data={message.data} />
+                  <RecommendationDisplay data={message.data} nightMode={nightMode} />
                 ) : message.dataType === 'recommendation' || message.dataType === 'upgrade_suggestion' ? (
-                  <div className="bg-yellow-100 dark:bg-yellow-900/20 rounded-lg px-4 py-3 text-yellow-900 dark:text-yellow-100">
-                    <p className="text-sm">Unable to display recommendation (data format error)</p>
+                  <div 
+                    style={{
+                      backgroundColor: nightMode ? 'rgba(194, 120, 49, 0.1)' : '#fef3c7',
+                      borderRadius: '0.5rem',
+                      padding: '0.75rem 1rem',
+                      color: nightMode ? '#fcd34d' : '#92400e',
+                    }}
+                  >
+                    <p style={{ fontSize: '0.875rem' }}>Unable to display recommendation (data format error)</p>
                   </div>
                 ) : (
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3 text-gray-900 dark:text-gray-100">
+                  <div 
+                    style={{
+                      backgroundColor: nightMode ? '#1a1a1a' : '#f3f4f6',
+                      borderRadius: '0.5rem',
+                      padding: '0.75rem 1rem',
+                      color: nightMode ? '#ececf1' : '#111827',
+                    }}
+                  >
                     <div
-                      className="prose dark:prose-invert max-w-none text-sm"
-                      dangerouslySetInnerHTML={{ __html: parseMarkdown(message.content) }}
+                      style={{ fontSize: '0.875rem' }}
+                      dangerouslySetInnerHTML={{ __html: parseMarkdown(message.content, nightMode) }}
                     />
                   </div>
                 )}
@@ -89,7 +132,7 @@ export default function MessageList({ messages, isLoading = false }: MessageList
           </motion.div>
         ))}
 
-        {isLoading && <LoadingAnimation messageType={loadingMessageType as any} />}
+        {isLoading && <LoadingAnimation messageType={loadingMessageType as any} nightMode={nightMode} />}
         <div ref={messagesEndRef} />
       </div>
     </div>
@@ -97,7 +140,7 @@ export default function MessageList({ messages, isLoading = false }: MessageList
 }
 
 // Simple markdown parser
-function parseMarkdown(text: string): string {
+function parseMarkdown(text: string, nightMode: boolean = false): string {
   if (!text) return '';
 
   let html = text
@@ -120,7 +163,7 @@ function parseMarkdown(text: string): string {
     const ulMatch = line.match(/^\s*[-•*]\s+(.+)/);
     if (ulMatch) {
       if (!inUl) {
-        result.push('<ul class="list-disc list-inside my-2 space-y-1">');
+        result.push(`<ul style="list-style: disc; margin-left: 1.25rem; margin-top: 0.5rem; margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">`);
         inUl = true;
       }
       result.push('<li>' + ulMatch[1] + '</li>');
@@ -132,7 +175,7 @@ function parseMarkdown(text: string): string {
       if (line.trim() === '') {
         result.push('<br>');
       } else {
-        result.push('<p class="mb-2">' + line + '</p>');
+        result.push('<p style="margin-bottom: 0.5rem;">' + line + '</p>');
       }
     }
   }

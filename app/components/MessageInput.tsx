@@ -7,11 +7,29 @@ interface MessageInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   loading?: boolean;
+  nightMode?: boolean;
 }
 
-export default function MessageInput({ onSend, disabled = false, loading = false }: MessageInputProps) {
+export default function MessageInput({ onSend, disabled = false, loading = false, nightMode = false }: MessageInputProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const theme = {
+    light: {
+      bg: '#ffffff',
+      border: '#d1d5db',
+      text: '#0d0d0d',
+      placeholder: '#9ca3af',
+    },
+    dark: {
+      bg: '#1a1a1a',
+      border: '#404052',
+      text: '#ececf1',
+      placeholder: '#6b7280',
+    },
+  };
+
+  const current = nightMode ? theme.dark : theme.light;
 
   const handleSend = () => {
     if (message.trim() && !disabled) {
@@ -38,8 +56,15 @@ export default function MessageInput({ onSend, disabled = false, loading = false
   }, [message]);
 
   return (
-    <div className="bg-white dark:bg-[#0a0a0a] rounded-lg border border-gray-300 dark:border-gray-600 focus-within:border-blue-500 transition-colors">
-      <div className="flex items-end gap-3 p-3">
+    <div 
+      style={{
+        backgroundColor: current.bg,
+        borderRadius: '0.5rem',
+        border: `1px solid ${current.border}`,
+        transition: 'all 0.2s ease',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.75rem', padding: '0.75rem' }}>
         <textarea
           ref={textareaRef}
           value={message}
@@ -47,13 +72,47 @@ export default function MessageInput({ onSend, disabled = false, loading = false
           onKeyDown={handleKeyDown}
           placeholder="Message SmartSpecs..."
           disabled={disabled || loading}
-          className="flex-1 resize-none outline-none bg-transparent text-base placeholder-gray-400 dark:placeholder-gray-500 max-h-40 disabled:opacity-50"
+          style={{
+            flex: 1,
+            resize: 'none',
+            outline: 'none',
+            backgroundColor: 'transparent',
+            color: current.text,
+            fontSize: '1rem',
+            placeholderColor: current.placeholder,
+            maxHeight: '200px',
+            fontFamily: 'inherit',
+            border: 'none',
+            opacity: disabled || loading ? 0.5 : 1,
+            transition: 'opacity 0.2s ease',
+          }}
           rows={1}
         />
         <button
           onClick={handleSend}
           disabled={disabled || loading || !message.trim()}
-          className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+          style={{
+            padding: '0.5rem',
+            borderRadius: '0.5rem',
+            backgroundColor: '#2563eb',
+            color: 'white',
+            border: 'none',
+            cursor: disabled || loading || !message.trim() ? 'not-allowed' : 'pointer',
+            transition: 'background-color 0.2s ease',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: disabled || loading || !message.trim() ? 0.5 : 1,
+          }}
+          onMouseEnter={(e) => {
+            if (!disabled && !loading && message.trim()) {
+              e.currentTarget.style.backgroundColor = '#1d4ed8';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#2563eb';
+          }}
           title="Send message (Enter)"
         >
           <FaPaperPlane size={16} />

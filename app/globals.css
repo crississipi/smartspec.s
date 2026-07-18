@@ -1,5 +1,49 @@
 @import "tailwindcss";
 
+/* Configure dark mode for Tailwind CSS v4 */
+@supports (color-scheme: light) {
+  html.dark {
+    color-scheme: dark;
+  }
+}
+
+/* ============================================================
+   DARK MODE - EXPLICIT BACKGROUND COLORS
+   ============================================================ */
+
+/* Force dark backgrounds on major elements */
+html.dark {
+  background-color: #0d0d0d !important;
+}
+
+html.dark body {
+  background-color: #0d0d0d !important;
+  color: #ececf1 !important;
+}
+
+html.dark .flex {
+  background-color: inherit;
+}
+
+html.dark > body > div {
+  background-color: #0d0d0d;
+}
+
+/* ============================================================
+   ROOT VARIABLES - DARK MODE
+   ============================================================ */
+
+html.dark {
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #2a2a2a;
+  --text-primary: #ececf1;
+  --text-secondary: #b4b4bc;
+  --text-tertiary: #8e8ea0;
+  --border-primary: #565869;
+  --border-secondary: #404052;
+}
+
 /* ============================================================
    SMARTSPECS - GLOBAL STYLES (ChatGPT-Inspired Theme)
    ============================================================ */
@@ -35,6 +79,18 @@
   --error-light: #ffebee;
   --warning: #ff9800;
   --info: #2196f3;
+}
+
+/* Override variables when dark mode is active */
+html.dark {
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #2a2a2a;
+  --text-primary: #ececf1;
+  --text-secondary: #b4b4bc;
+  --text-tertiary: #8e8ea0;
+  --border-primary: #565869;
+  --border-secondary: #404052;
 }
 
 html {

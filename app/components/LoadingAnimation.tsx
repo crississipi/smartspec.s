@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 interface LoadingAnimationProps {
   messageType?: 'greeting' | 'build' | 'search' | 'tips' | 'upgrade' | 'price_update' | 'general';
   requestId?: string | null;
+  nightMode?: boolean;
 }
 
 const loadingPhases = {
@@ -55,7 +56,7 @@ const loadingPhases = {
   general: ['Thinking', 'Analyzing your request', 'Browsing through the internet', 'Generating response'],
 };
 
-export default function LoadingAnimation({ messageType = 'general', requestId }: LoadingAnimationProps) {
+export default function LoadingAnimation({ messageType = 'general', requestId, nightMode = false }: LoadingAnimationProps) {
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
   const [displayedText, setDisplayedText] = useState('');
@@ -95,15 +96,27 @@ export default function LoadingAnimation({ messageType = 'general', requestId }:
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="ai-input my-4"
+      style={{ margin: '1rem 0' }}
     >
-      <div className="loading-bubble bg-gray-100 dark:bg-gray-800 rounded-2xl p-6 max-w-2xl">
+      <div 
+        style={{
+          backgroundColor: nightMode ? '#1a1a1a' : '#f3f4f6',
+          borderRadius: '1.125rem',
+          padding: '1.5rem',
+          maxWidth: '32rem',
+        }}
+      >
         {/* Spinner */}
-        <div className="loading-spinner flex gap-2 mb-4">
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
-              className="w-2 h-2 bg-blue-500 rounded-full"
+              style={{
+                width: '0.5rem',
+                height: '0.5rem',
+                backgroundColor: '#3b82f6',
+                borderRadius: '50%',
+              }}
               animate={{
                 scale: [1, 1.5, 1],
                 opacity: [0.5, 1, 0.5],
@@ -118,11 +131,24 @@ export default function LoadingAnimation({ messageType = 'general', requestId }:
         </div>
 
         {/* Typing Animation */}
-        <div className="typing-container mb-4">
-          <div className="typing-animation-wrapper flex items-center">
-            <span className="typing-text text-sm text-gray-700 dark:text-gray-300">{displayedText}</span>
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span 
+              style={{
+                fontSize: '0.875rem',
+                color: nightMode ? '#b4b4bc' : '#374151',
+              }}
+            >
+              {displayedText}
+            </span>
             <motion.span
-              className="typing-cursor inline-block w-0.5 h-4 bg-blue-500 ml-1"
+              style={{
+                display: 'inline-block',
+                width: '0.125rem',
+                height: '1rem',
+                backgroundColor: '#3b82f6',
+                marginLeft: '0.25rem',
+              }}
               animate={{ opacity: [1, 0] }}
               transition={{ duration: 0.8, repeat: Infinity }}
             />
@@ -130,11 +156,17 @@ export default function LoadingAnimation({ messageType = 'general', requestId }:
         </div>
 
         {/* Skeleton Strip - Component Cards Preview */}
-        <div className="loading-skeleton-strip flex gap-3 overflow-hidden">
+        <div style={{ display: 'flex', gap: '0.75rem', overflow: 'hidden' }}>
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="loading-skeleton-card flex-shrink-0 w-32 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"
+              style={{
+                flexShrink: 0,
+                width: '8rem',
+                height: '6rem',
+                backgroundColor: nightMode ? '#2a2a2a' : '#d1d5db',
+                borderRadius: '0.5rem',
+              }}
               animate={{
                 opacity: [0.3, 0.6, 0.3],
               }}
