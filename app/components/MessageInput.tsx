@@ -79,15 +79,32 @@ export default function MessageInput({ onSend, disabled = false, loading = false
             backgroundColor: 'transparent',
             color: current.text,
             fontSize: '1rem',
-            placeholderColor: current.placeholder,
             maxHeight: '200px',
             fontFamily: 'inherit',
             border: 'none',
             opacity: disabled || loading ? 0.5 : 1,
             transition: 'opacity 0.2s ease',
-          }}
+          } as React.CSSProperties}
           rows={1}
         />
+        <style>{`
+          textarea::placeholder {
+            color: ${current.placeholder};
+            opacity: 1;
+          }
+          textarea::-webkit-input-placeholder {
+            color: ${current.placeholder};
+            opacity: 1;
+          }
+          textarea:-moz-placeholder {
+            color: ${current.placeholder};
+            opacity: 1;
+          }
+          textarea::-moz-placeholder {
+            color: ${current.placeholder};
+            opacity: 1;
+          }
+        `}</style>
         <button
           onClick={handleSend}
           disabled={disabled || loading || !message.trim()}
