@@ -154,7 +154,7 @@ class ComponentLoaderService {
     if (this.initialized) return;
 
     try {
-      const scriptsDir = path.join(process.cwd(), 'scripts', 'pcpartpicker_json');
+      const scriptsDir = path.join(process.cwd(), 'data', 'components');
 
       // Read all JSON files from the directory
       const files = fs.readdirSync(scriptsDir).filter((file) => file.endsWith('.json'));

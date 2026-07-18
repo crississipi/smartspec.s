@@ -15,7 +15,7 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-const COMPONENTS_DATA_DIR = path.join(process.cwd(), 'scripts', 'pcpartpicker_json');
+const COMPONENTS_DATA_DIR = path.join(process.cwd(), 'data', 'components');
 
 // Budget allocation presets (percentages that sum to 1.0)
 const BUDGET_ALLOCATIONS: Record<string, Record<string, number>> = {
