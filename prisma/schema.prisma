@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "mysql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_DIRECT_URL")
+}
+
+model User {
+  id            Int               @id @default(autoincrement())
+  email         String            @unique @db.VarChar(255)
+  password      String            @db.VarChar(255)
+  name          String?           @db.VarChar(255)
+  googleId      String?           @map("google_id") @db.VarChar(255)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @default(now()) @updatedAt @map("updated_at")
+  threads       Thread[]
+  preferences   UserPreference?
+
+  @@map("users")
+}
+
+model PasswordReset {
+  id        Int      @id @default(autoincrement())
+  email     String   @db.VarChar(255)
+  otp       String   @db.VarChar(10)
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_resets")
+}
+
+model UserPreference {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  nightMode Boolean  @default(false) @map("night_mode")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Thread {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  title     String    @default("New Conversation") @db.VarChar(255)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@map("threads")
+}
+
+model Message {
+  id               Int               @id @default(autoincrement())
+  threadId         Int               @map("thread_id")
+  role             String            @db.VarChar(20)
+  content          String            @db.Text
+  dataType         String?           @default("text") @map("data_type") @db.VarChar(50)
+  recommendationId Int?              @map("recommendation_id")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  thread           Thread            @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  recommendation   Recommendation?   @relation(fields: [recommendationId], references: [id], onDelete: SetNull)
+
+  @@map("messages")
+}
+
+model Recommendation {
+  id                Int                       @id @default(autoincrement())
+  aiResponse        String                    @map("ai_response") @db.Text
+  queryAnalysis     Json?                     @map("query_analysis")
+  componentsFound   Int                       @default(0) @map("components_found")
+  needsUpdate       Boolean                   @default(false) @map("needs_update")
+  budgetAnalysis    Json?                     @map("budget_analysis")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  messages          Message[]
+  components        RecommendationComponent[]
+  tiers             RecommendationTier[]
+
+  @@map("recommendations")
+}
+
+model RecommendationComponent {
+  id                Int      @id @default(autoincrement())
+  recommendationId  Int      @map("recommendation_id")
+  componentType     String   @map("component_type") @db.VarChar(50)
+  brand             String?  @db.VarChar(100)
+  model             String?  @db.VarChar(255)
+  price             Decimal? @db.Decimal(10,2)
+  currency          String?  @default("PHP") @db.VarChar(10)
+  imageUrl          String?  @map("image_url") @db.Text
+  sourceUrl         String?  @map("source_url") @db.Text
+  tier              String?  @default("balanced") @db.VarChar(20)
+  recommendation    Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@map("recommendation_components")
+}
+
+model RecommendationTier {
+  id                Int      @id @default(autoincrement())
+  recommendationId  Int      @map("recommendation_id")
+  tierName          String   @map("tier_name") @db.VarChar(50)
+  totalPrice        Decimal? @map("total_price") @db.Decimal(10,2)
+  componentsCount   Int      @default(0) @map("components_count")
+  recommendation    Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@map("recommendation_tiers")
+}
