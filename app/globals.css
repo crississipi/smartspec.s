@@ -1,5 +1,3 @@
-@import "tailwindcss";
-
 /* Configure dark mode for Tailwind CSS v4 */
 @supports (color-scheme: light) {
   html.dark {
