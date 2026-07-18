@@ -188,8 +188,9 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
 
   return (
     <div 
-      className="flex h-screen"
       style={{
+        display: 'flex',
+        height: '100vh',
         backgroundColor: current.bg,
         color: current.text,
         transition: 'all 0.2s ease',
@@ -200,11 +201,12 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
         initial={{ width: 0, opacity: 0 }}
         animate={{ width: sidebarOpen ? 260 : 0, opacity: sidebarOpen ? 1 : 0 }}
         style={{
+          display: 'flex',
+          flexDirection: 'column',
           backgroundColor: current.sidebar,
           borderRight: `1px solid ${current.border}`,
           overflow: 'hidden',
         }}
-        className="flex flex-col"
       >
         {/* Sidebar Header */}
         <div 
@@ -491,7 +493,7 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
       </motion.div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div 
           style={{
