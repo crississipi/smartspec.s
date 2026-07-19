@@ -1,9 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect as React_useEffect } from 'react';
 import { FaExternalLinkAlt, FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import Image from 'next/image';
 
 interface Component {
   id?: number | null;
@@ -13,6 +12,7 @@ interface Component {
   price: number;
   currency?: string;
   image_url?: string | null;
+  link?: string | null;
   source_url?: string | null;
   store_name?: string | null;
   reason?: string | null;
@@ -29,11 +29,56 @@ interface ComponentCardProps {
   onShowAlternatives?: (component: Component) => void;
 }
 
+// Theme configuration
+const theme = {
+  light: {
+    bg: '#ffffff',
+    bgHover: '#f9fafb',
+    text: '#0d0d0d',
+    textSecondary: '#6b7280',
+    textLight: '#9ca3af',
+    border: '#e5e7eb',
+    shadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+    badgeBg: '#3b82f6',
+    badgeText: '#ffffff',
+    imageBg: '#f3f4f6',
+  },
+  dark: {
+    bg: '#1a1a1a',
+    bgHover: '#262626',
+    text: '#f5f5f5',
+    textSecondary: '#d1d5db',
+    textLight: '#9ca3af',
+    border: '#404040',
+    shadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+    badgeBg: '#3b82f6',
+    badgeText: '#ffffff',
+    imageBg: '#2a2a2a',
+  },
+};
+
 export default function ComponentCard({ component, index, onShowAlternatives }: ComponentCardProps) {
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [alternatives, setAlternatives] = useState<Component[]>([]);
   const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+  const [nightMode, setNightMode] = useState(false);
 
+  React_useEffect(() => {
+    // Check on mount and listen for changes
+    const checkDarkMode = () => {
+      setNightMode(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    // Listen for dark mode changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  const current = nightMode ? theme.dark : theme.light;
   const currencySymbol = component.currency === 'PHP' ? '₱' : component.currency === 'USD' ? '$' : '€';
 
   const handleToggleAlternatives = async () => {
@@ -63,76 +108,153 @@ export default function ComponentCard({ component, index, onShowAlternatives }: 
     setShowAlternatives(!showAlternatives);
   };
 
+  const cardStyle = {
+    backgroundColor: current.bg,
+    borderRadius: '12px',
+    boxShadow: current.shadow,
+    overflow: 'hidden' as const,
+    border: component.is_upgrade ? `2px solid #10b981` : 'none',
+  };
+
+  const imageContainerStyle = {
+    position: 'relative' as const,
+    height: '192px',
+    backgroundColor: current.imageBg,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: component.link || component.source_url ? 'pointer' : 'default',
+    transition: 'background-color 0.2s',
+  };
+
+  const badgeStyle = {
+    position: 'absolute' as const,
+    top: '8px',
+    left: '8px',
+    padding: '6px 12px',
+    backgroundColor: current.badgeBg,
+    color: current.badgeText,
+    fontSize: '11px',
+    fontWeight: 'bold',
+    borderRadius: '16px',
+    textTransform: 'uppercase' as const,
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
-      className={`component-card bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden ${
-        component.is_upgrade ? 'border-2 border-green-500' : ''
-      }`}
+      style={cardStyle}
     >
       {/* Component Image */}
-      <div className="component-card-image relative h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-        <span className="component-type-badge absolute top-2 left-2 px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full uppercase">
+      <div
+        style={imageContainerStyle}
+        onClick={() => {
+          const url = component.link || component.source_url;
+          if (url) window.open(url, '_blank');
+        }}
+        onMouseOver={(e) => {
+          if (component.link || component.source_url) {
+            (e.currentTarget as HTMLDivElement).style.backgroundColor = current.bgHover;
+          }
+        }}
+        onMouseOut={(e) => {
+          (e.currentTarget as HTMLDivElement).style.backgroundColor = current.imageBg;
+        }}
+      >
+        <span style={badgeStyle}>
           {component.type}
         </span>
         {component.image_url ? (
-          <div className="relative w-full h-full">
-            <Image
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <img
               src={component.image_url}
               alt={component.model}
-              fill
-              className="object-contain p-4"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                padding: '16px',
+              }}
               loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
             />
           </div>
         ) : (
-          <div className="text-gray-400 dark:text-gray-500 text-sm">No image available</div>
+          <div style={{ color: current.textLight, fontSize: '14px' }}>No image available</div>
         )}
       </div>
 
       {/* Component Info */}
-      <div className="component-card-body p-4">
-        <div className="component-card-info mb-3">
-          <div className="component-brand text-sm text-gray-500 dark:text-gray-400 font-medium">
+      <div style={{ padding: '16px' }}>
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '13px', color: current.textSecondary, fontWeight: '500' }}>
             {component.brand}
           </div>
-          {component.source_url ? (
+          {component.link || component.source_url ? (
             <a
-              href={component.source_url}
+              href={(component.link || component.source_url) || undefined}
               target="_blank"
               rel="noopener noreferrer"
-              className="component-model text-lg font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"
+              style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#3b82f6',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+              }}
+              onMouseOver={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline';
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none';
+              }}
             >
               {component.model}
               <FaExternalLinkAlt size={12} />
             </a>
           ) : (
-            <div className="component-model text-lg font-semibold">{component.model}</div>
+            <div style={{ fontSize: '18px', fontWeight: '600', color: current.text }}>
+              {component.model}
+            </div>
           )}
           {component.reason && (
-            <p className="component-reason text-sm text-gray-600 dark:text-gray-300 mt-2">{component.reason}</p>
+            <p style={{ fontSize: '13px', color: current.textSecondary, marginTop: '8px', margin: 0 }}>
+              {component.reason}
+            </p>
           )}
         </div>
 
         {/* Upgrade Info */}
         {component.is_upgrade && component.current_component && (
-          <div className="component-upgrade-info bg-green-50 dark:bg-green-900/20 rounded-lg p-3 mb-3">
-            <div className="upgrade-from text-xs text-gray-600 dark:text-gray-300 mb-1">
-              <span className="font-semibold">Current:</span> {component.current_component}
+          <div style={{
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderRadius: '8px',
+            padding: '12px',
+            marginBottom: '12px',
+          }}>
+            <div style={{ fontSize: '12px', color: current.textSecondary, marginBottom: '4px' }}>
+              <span style={{ fontWeight: '600' }}>Current:</span> {component.current_component}
             </div>
             {component.price_difference !== null && component.price_difference !== undefined && (
               <div
-                className={`price-difference text-sm font-bold ${
-                  component.price_difference >= 0 ? 'text-red-600' : 'text-green-600'
-                }`}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  color: component.price_difference >= 0 ? '#dc2626' : '#10b981',
+                }}
               >
                 {component.price_difference >= 0 ? '+' : ''}
                 {currencySymbol}
                 {component.price_difference.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 {component.price_difference_percent !== null && component.price_difference_percent !== undefined && (
-                  <span className="text-xs ml-1">
+                  <span style={{ fontSize: '12px', marginLeft: '4px' }}>
                     ({component.price_difference >= 0 ? '+' : ''}
                     {component.price_difference_percent.toFixed(1)}%)
                   </span>
@@ -143,24 +265,53 @@ export default function ComponentCard({ component, index, onShowAlternatives }: 
         )}
 
         {/* Price */}
-        <div className="component-card-price border-t border-gray-200 dark:border-gray-700 pt-3 mb-3">
-          <span className="price-amount text-2xl font-bold text-gray-900 dark:text-white">
+        <div style={{
+          borderTop: `1px solid ${current.border}`,
+          paddingTop: '12px',
+          marginBottom: '12px',
+        }}>
+          <span style={{ fontSize: '28px', fontWeight: 'bold', color: current.text }}>
             {currencySymbol}
             {component.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </span>
           {component.store_name && (
-            <div className="store-name text-xs text-gray-500 dark:text-gray-400 mt-1">{component.store_name}</div>
+            <div style={{ fontSize: '12px', color: current.textLight, marginTop: '4px' }}>
+              {component.store_name}
+            </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="component-card-actions flex gap-2">
-          {component.source_url && (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {(component.link || component.source_url) && (
             <a
-              href={component.source_url}
+              href={(component.link || component.source_url) || undefined}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-view flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg text-center transition-colors flex items-center justify-center gap-2"
+              style={{
+                flex: 1,
+                padding: '10px 16px',
+                backgroundColor: '#3b82f6',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: '500',
+                borderRadius: '8px',
+                textAlign: 'center',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseOver={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#2563eb';
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#3b82f6';
+              }}
             >
               <FaExternalLinkAlt size={12} />
               View Product
@@ -169,7 +320,28 @@ export default function ComponentCard({ component, index, onShowAlternatives }: 
           {!component.is_upgrade && (
             <button
               onClick={handleToggleAlternatives}
-              className="btn-alternate px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              style={{
+                flex: component.link || component.source_url ? 1 : 1,
+                padding: '10px 16px',
+                backgroundColor: current.bgHover,
+                color: current.text,
+                fontSize: '13px',
+                fontWeight: '500',
+                borderRadius: '8px',
+                border: `1px solid ${current.border}`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = current.border;
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = current.bgHover;
+              }}
             >
               {showAlternatives ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
               Alternatives
@@ -183,38 +355,69 @@ export default function ComponentCard({ component, index, onShowAlternatives }: 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+            style={{
+              marginTop: '16px',
+              paddingTop: '16px',
+              borderTop: `1px solid ${current.border}`,
+            }}
           >
             {loadingAlternatives ? (
-              <div className="text-center py-4 text-sm text-gray-500">Loading alternatives...</div>
+              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: '13px', color: current.textLight }}>
+                Loading alternatives...
+              </div>
             ) : alternatives.length > 0 ? (
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold mb-2">Alternative Options</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', margin: 0 }}>
+                  Alternative Options
+                </h4>
                 {alternatives.slice(0, 3).map((alt, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg text-sm"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '10px',
+                      backgroundColor: current.bgHover,
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
                   >
                     {alt.image_url && (
-                      <div className="relative w-12 h-12 flex-shrink-0">
-                        <Image src={alt.image_url} alt={alt.model} fill className="object-contain" loading="lazy" />
+                      <div style={{ width: '48px', height: '48px', flexShrink: 0, overflow: 'hidden', borderRadius: '4px' }}>
+                        <img
+                          src={alt.image_url}
+                          alt={alt.model}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                          }}
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {alt.brand} {alt.model}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <div style={{ fontSize: '12px', color: current.textLight }}>
                         {currencySymbol}
                         {alt.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </div>
                     </div>
-                    {alt.source_url && (
+                    {alt.link || alt.source_url && (
                       <a
-                        href={alt.source_url}
+                        href={alt.link || alt.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700"
+                        style={{
+                          color: '#3b82f6',
+                          cursor: 'pointer',
+                        }}
                       >
                         <FaExternalLinkAlt size={12} />
                       </a>
@@ -223,7 +426,9 @@ export default function ComponentCard({ component, index, onShowAlternatives }: 
                 ))}
               </div>
             ) : (
-              <div className="text-center py-4 text-sm text-gray-500">No alternatives found</div>
+              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: '13px', color: current.textLight }}>
+                No alternatives found
+              </div>
             )}
           </motion.div>
         )}

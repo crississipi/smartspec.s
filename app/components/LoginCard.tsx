@@ -1,11 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { FcGoogle } from 'react-icons/fc';
 import { FaArrowLeft } from 'react-icons/fa';
 import { LogoIcon } from '@/lib/icons';
+
+// Theme configuration
+const theme = {
+  light: {
+    bg: '#ffffff',
+    bgHover: '#f9fafb',
+    text: '#0d0d0d',
+    textSecondary: '#6b7280',
+    border: '#e5e7eb',
+    borderLight: '#f3f4f6',
+    primary: '#10b981',
+    primaryHover: '#059669',
+    accent: '#3b82f6',
+    accentHover: '#2563eb',
+    error: '#dc2626',
+    errorBg: '#fef2f2',
+    divider: '#d1d5db',
+  },
+  dark: {
+    bg: '#1a1a1a',
+    bgHover: '#262626',
+    text: '#f5f5f5',
+    textSecondary: '#d1d5db',
+    border: '#404040',
+    borderLight: '#333333',
+    primary: '#10b981',
+    primaryHover: '#059669',
+    accent: '#60a5fa',
+    accentHover: '#3b82f6',
+    error: '#ef4444',
+    errorBg: '#7f1d1d',
+    divider: '#4b5563',
+  },
+};
 
 export default function LoginCard({ onLogin }: { onLogin: () => void }) {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'forgot-otp' | 'forgot-reset'>('login');
@@ -17,6 +51,25 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [nightMode, setNightMode] = useState(false);
+
+  // Detect dark mode preference
+  useEffect(() => {
+    // Check on mount and listen for changes
+    const checkDarkMode = () => {
+      setNightMode(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    // Listen for dark mode changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  const current = nightMode ? theme.dark : theme.light;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,28 +232,166 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
     }
   };
 
+  const containerStyle = {
+    position: 'fixed' as const,
+    inset: 0,
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backdropFilter: 'blur(4px)',
+  };
+
+  const cardStyle = {
+    width: '100%',
+    maxWidth: '420px',
+    borderRadius: '12px',
+    border: `1px solid ${current.border}`,
+    backgroundColor: current.bg,
+    boxShadow: nightMode ? '0 20px 25px -5px rgba(0, 0, 0, 0.3)' : '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+    overflow: 'hidden' as const,
+  };
+
+  const headerStyle = {
+    textAlign: 'center' as const,
+    marginBottom: '8px',
+  };
+
+  const headerTitleStyle = {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: current.text,
+    margin: 0,
+  };
+
+  const headerSubtitleStyle = {
+    color: current.textSecondary,
+    fontSize: '14px',
+    marginTop: '4px',
+    margin: 0,
+  };
+
+  const formStyle = {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '12px',
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    border: `1px solid ${current.border}`,
+    backgroundColor: current.bg,
+    color: current.text,
+    fontSize: '14px',
+    outline: 'none' as const,
+    transition: 'all 0.2s',
+    boxSizing: 'border-box' as const,
+  };
+
+  const inputFocusStyle = {
+    ...inputStyle,
+    borderColor: current.primary,
+    boxShadow: `0 0 0 3px ${nightMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.1)'}`,
+  };
+
+  const buttonPrimaryStyle = {
+    width: '100%',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    backgroundColor: current.primary,
+    color: '#ffffff',
+    border: 'none',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: loading ? 'not-allowed' : 'pointer',
+    transition: 'all 0.2s',
+    opacity: loading ? 0.5 : 1,
+  };
+
+  const buttonSecondaryStyle = {
+    width: '100%',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    backgroundColor: current.bgHover,
+    color: current.text,
+    border: `1px solid ${current.border}`,
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  };
+
+  const dividerStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    margin: '8px 0',
+    gap: '12px',
+  };
+
+  const dividerLineStyle = {
+    flex: 1,
+    height: '1px',
+    backgroundColor: current.border,
+  };
+
+  const dividerTextStyle = {
+    color: current.textSecondary,
+    fontSize: '13px',
+    padding: '0 8px',
+  };
+
+  const linkStyle = {
+    fontSize: '13px',
+    color: current.primary,
+    cursor: 'pointer',
+    textDecoration: 'none',
+    fontWeight: '500',
+    border: 'none',
+    background: 'none',
+    padding: '4px 0',
+  };
+
+  const errorBoxStyle = {
+    padding: '12px 16px',
+    fontSize: '13px',
+    color: current.error,
+    backgroundColor: nightMode ? `${current.errorBg}20` : current.errorBg,
+    borderRadius: '8px',
+    textAlign: 'center' as const,
+  };
+
+  const contentStyle = {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    padding: '24px',
+    gap: '16px',
+  };
+
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div style={containerStyle}>
       <motion.div
-        className="w-full max-w-md rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg dark:shadow-2xl overflow-hidden"
+        style={cardStyle}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.2 }}
       >
         {error && (
-          <div className="w-full px-6 pt-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded p-3 text-center">
+          <div style={{ ...errorBoxStyle, margin: '16px 24px 0' }}>
             {error}
           </div>
         )}
 
         {mode === 'login' && (
-          <div className="flex flex-col p-6 gap-4">
-            <div className="text-center mb-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Log in to SmartSpecs</p>
+          <div style={contentStyle}>
+            <div style={headerStyle}>
+              <h2 style={headerTitleStyle}>Welcome back</h2>
+              <p style={headerSubtitleStyle}>Log in to SmartSpecs</p>
             </div>
 
-            <form onSubmit={handleLogin} className="flex flex-col gap-3">
+            <form onSubmit={handleLogin} style={formStyle}>
               <input
                 type="email"
                 placeholder="Email address"
@@ -208,7 +399,9 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
               />
               <input
                 type="password"
@@ -217,51 +410,67 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
               />
 
               <button
                 type="button"
-                className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline text-left mt-1"
+                style={linkStyle}
                 onClick={() => setMode('forgot')}
                 disabled={loading}
               >
                 Forgot password?
               </button>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
-                className="w-full mt-3 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium transition-all disabled:opacity-50"
+                style={{
+                  ...buttonPrimaryStyle,
+                  marginTop: '12px',
+                  backgroundColor: loading ? current.primary : current.primary,
+                } as React.CSSProperties}
+                onMouseOver={(e) => {
+                  if (!loading) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = current.primaryHover;
+                  }
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = current.primary;
+                }}
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>
             </form>
 
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400">or</span>
-              </div>
+            <div style={dividerStyle}>
+              <div style={dividerLineStyle}></div>
+              <span style={dividerTextStyle}>or</span>
+              <div style={dividerLineStyle}></div>
             </div>
 
             <button
               type="button"
-              className="w-full py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium transition-all flex items-center justify-center gap-2"
+              style={buttonSecondaryStyle}
               onClick={() => signIn('google', { callbackUrl: '/' })}
               disabled={loading}
+              onMouseOver={(e) => {
+                (e.target as HTMLButtonElement).style.backgroundColor = current.bgHover;
+              }}
             >
-              <FcGoogle size={18} />
-              Continue with Google
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <FcGoogle size={18} />
+                Continue with Google
+              </div>
             </button>
 
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
+            <p style={{ textAlign: 'center' as const, fontSize: '14px', color: current.textSecondary, margin: 0, marginTop: '8px' }}>
               Don't have an account?{' '}
-              <button 
-                type="button" 
-                className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
+              <button
+                type="button"
+                style={linkStyle}
                 onClick={() => setMode('signup')}
               >
                 Sign up
@@ -271,13 +480,13 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
         )}
 
         {mode === 'signup' && (
-          <div className="flex flex-col p-6 gap-4">
-            <div className="text-center mb-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Create account</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Get started with SmartSpecs</p>
+          <div style={contentStyle}>
+            <div style={headerStyle}>
+              <h2 style={headerTitleStyle}>Create account</h2>
+              <p style={headerSubtitleStyle}>Get started with SmartSpecs</p>
             </div>
 
-            <form onSubmit={handleSignup} className="flex flex-col gap-3">
+            <form onSubmit={handleSignup} style={formStyle}>
               <input
                 type="email"
                 placeholder="Email address"
@@ -285,7 +494,9 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
               />
               <input
                 type="password"
@@ -294,7 +505,9 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
               />
               <input
                 type="password"
@@ -303,42 +516,54 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
               />
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium transition-all disabled:opacity-50"
+                style={{
+                  ...buttonPrimaryStyle,
+                  marginTop: '8px',
+                } as React.CSSProperties}
+                onMouseOver={(e) => {
+                  if (!loading) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = current.primaryHover;
+                  }
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = current.primary;
+                }}
               >
                 {loading ? 'Creating account...' : 'Sign up'}
               </button>
             </form>
 
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400">or</span>
-              </div>
+            <div style={dividerStyle}>
+              <div style={dividerLineStyle}></div>
+              <span style={dividerTextStyle}>or</span>
+              <div style={dividerLineStyle}></div>
             </div>
 
             <button
               type="button"
-              className="w-full py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium transition-all flex items-center justify-center gap-2"
+              style={buttonSecondaryStyle}
               onClick={() => signIn('google', { callbackUrl: '/' })}
               disabled={loading}
             >
-              <FcGoogle size={18} />
-              Continue with Google
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <FcGoogle size={18} />
+                Continue with Google
+              </div>
             </button>
 
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
+            <p style={{ textAlign: 'center' as const, fontSize: '14px', color: current.textSecondary, margin: 0, marginTop: '8px' }}>
               Already have an account?{' '}
-              <button 
-                type="button" 
-                className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
+              <button
+                type="button"
+                style={linkStyle}
                 onClick={() => setMode('login')}
               >
                 Sign in
@@ -348,21 +573,22 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
         )}
 
         {mode === 'forgot' && (
-          <div className="flex flex-col p-6 gap-4">
+          <div style={contentStyle}>
             <button
               type="button"
               onClick={() => setMode('login')}
-              className="self-start flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:underline text-sm font-medium mb-2"
+              style={{ ...linkStyle, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}
+              disabled={loading}
             >
               <FaArrowLeft size={14} /> Back
             </button>
 
-            <div className="text-center mb-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Forgot password?</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">We'll send you an OTP to reset it</p>
+            <div style={headerStyle}>
+              <h2 style={headerTitleStyle}>Forgot password?</h2>
+              <p style={headerSubtitleStyle}>We'll send you an OTP to reset it</p>
             </div>
 
-            <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
+            <form onSubmit={handleForgotPassword} style={formStyle}>
               <input
                 type="email"
                 placeholder="Email address"
@@ -370,13 +596,23 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
               />
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
-                className="w-full py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium transition-all disabled:opacity-50"
+                style={buttonPrimaryStyle as React.CSSProperties}
+                onMouseOver={(e) => {
+                  if (!loading) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = current.primaryHover;
+                  }
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = current.primary;
+                }}
               >
                 {loading ? 'Sending OTP...' : 'Send OTP'}
               </button>
@@ -385,22 +621,23 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
         )}
 
         {mode === 'forgot-otp' && (
-          <div className="flex flex-col p-6 gap-4">
+          <div style={contentStyle}>
             <button
               type="button"
               onClick={() => setMode('forgot')}
-              className="self-start flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:underline text-sm font-medium mb-2"
+              style={{ ...linkStyle, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}
+              disabled={loading}
             >
               <FaArrowLeft size={14} /> Back
             </button>
 
-            <div className="text-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Verify OTP</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Enter the code sent to {email}</p>
+            <div style={headerStyle}>
+              <h2 style={headerTitleStyle}>Verify OTP</h2>
+              <p style={headerSubtitleStyle}>Enter the code sent to {email}</p>
             </div>
 
-            <form onSubmit={handleVerifyOtp} className="flex flex-col gap-6">
-              <div className="flex justify-center gap-2">
+            <form onSubmit={handleVerifyOtp} style={{ ...formStyle, gap: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
                 {otp.map((digit, i) => (
                   <input
                     key={i}
@@ -423,15 +660,40 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
                     }}
                     data-otp={i}
                     disabled={loading}
-                    className="w-12 h-12 text-center text-xl font-medium border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      textAlign: 'center',
+                      fontSize: '20px',
+                      fontWeight: 'bold',
+                      border: `2px solid ${current.border}`,
+                      borderRadius: '8px',
+                      backgroundColor: current.bg,
+                      color: current.text,
+                      outline: 'none',
+                    }}
+                    onFocus={(e) => {
+                      (e.target as HTMLInputElement).style.borderColor = current.primary;
+                    }}
+                    onBlur={(e) => {
+                      (e.target as HTMLInputElement).style.borderColor = current.border;
+                    }}
                   />
                 ))}
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
-                className="w-full py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium transition-all disabled:opacity-50"
+                style={buttonPrimaryStyle as React.CSSProperties}
+                onMouseOver={(e) => {
+                  if (!loading) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = current.primaryHover;
+                  }
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = current.primary;
+                }}
               >
                 {loading ? 'Verifying...' : 'Verify'}
               </button>
@@ -440,21 +702,22 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
         )}
 
         {mode === 'forgot-reset' && (
-          <div className="flex flex-col p-6 gap-4">
+          <div style={contentStyle}>
             <button
               type="button"
               onClick={() => setMode('forgot-otp')}
-              className="self-start flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:underline text-sm font-medium mb-2"
+              style={{ ...linkStyle, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}
+              disabled={loading}
             >
               <FaArrowLeft size={14} /> Back
             </button>
 
-            <div className="text-center mb-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Create new password</h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Enter a strong password (minimum 8 characters)</p>
+            <div style={headerStyle}>
+              <h2 style={headerTitleStyle}>Create new password</h2>
+              <p style={headerSubtitleStyle}>Enter a strong password (minimum 8 characters)</p>
             </div>
 
-            <form onSubmit={handleResetPassword} className="flex flex-col gap-3">
+            <form onSubmit={handleResetPassword} style={formStyle}>
               <input
                 type="password"
                 placeholder="New password"
@@ -462,7 +725,9 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
               />
               <input
                 type="password"
@@ -471,13 +736,26 @@ export default function LoginCard({ onLogin }: { onLogin: () => void }) {
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                style={inputStyle}
+                onFocus={(e) => Object.assign(e.target.style, inputFocusStyle)}
+                onBlur={(e) => Object.assign(e.target.style, inputStyle)}
               />
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium transition-all disabled:opacity-50"
+                style={{
+                  ...buttonPrimaryStyle,
+                  marginTop: '8px',
+                } as React.CSSProperties}
+                onMouseOver={(e) => {
+                  if (!loading) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = current.primaryHover;
+                  }
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = current.primary;
+                }}
               >
                 {loading ? 'Resetting...' : 'Reset Password'}
               </button>

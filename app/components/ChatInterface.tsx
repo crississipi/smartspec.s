@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import Notification from './Notification';
+import LoadingAnimation from './LoadingAnimation';
+import { generateChatTitle, updateThreadTitle } from '@/lib/title-generator';
 
 interface ChatInterfaceProps {
   user: any;
@@ -22,7 +24,9 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [threadsLoading, setThreadsLoading] = useState(true);
   const [hoveredThreadId, setHoveredThreadId] = useState<number | null>(null);
+  const [isAIResponding, setIsAIResponding] = useState(false);
 
   // Theme colors
   const theme = {
@@ -59,6 +63,7 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
   }, [currentThreadId]);
 
   const loadThreads = async () => {
+    setThreadsLoading(true);
     try {
       const res = await fetch('/api/threads');
       const data = await res.json();
@@ -70,6 +75,8 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
       }
     } catch (error) {
       console.error('Failed to load threads:', error);
+    } finally {
+      setThreadsLoading(false);
     }
   };
 
@@ -136,7 +143,19 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
     const tempUserMsg = { id: Date.now(), role: 'user' as const, content };
     setMessages((prev) => [...prev, tempUserMsg]);
 
+    // Generate title from first message if this is a new thread with default title
+    const currentThread = threads.find(t => t.id === threadId);
+    if (currentThread && (currentThread.title === 'New Chat' || currentThread.title.length > 47)) {
+      const generatedTitle = generateChatTitle(content);
+      await updateThreadTitle(threadId, generatedTitle);
+      // Update local thread list
+      setThreads(threads.map(t => 
+        t.id === threadId ? { ...t, title: generatedTitle } : t
+      ));
+    }
+
     setLoading(true);
+    setIsAIResponding(true);
     try {
       const res = await fetch('/api/messages', {
         method: 'POST',
@@ -168,6 +187,7 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
     } finally {
       setLoading(false);
+      setIsAIResponding(false);
     }
   };
 
@@ -261,89 +281,106 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
             padding: '0.5rem',
           }}
         >
-          {threads.map((thread) => (
-            <div
-              key={thread.id}
-              onMouseEnter={() => setHoveredThreadId(thread.id)}
-              onMouseLeave={() => setHoveredThreadId(null)}
+          {threadsLoading ? (
+            <div style={{ padding: '1rem', display: 'flex', justifyContent: 'center' }}>
+              <LoadingAnimation type="dots" size="small" nightMode={nightMode} text="Loading chats..." />
+            </div>
+          ) : threads.length === 0 ? (
+            <div 
               style={{
-                marginBottom: '0.5rem',
+                padding: '1rem',
+                textAlign: 'center',
+                color: current.textSecondary,
+                fontSize: '0.875rem',
               }}
             >
+              No conversations yet
+            </div>
+          ) : (
+            threads.map((thread) => (
               <div
+                key={thread.id}
+                onMouseEnter={() => setHoveredThreadId(thread.id)}
+                onMouseLeave={() => setHoveredThreadId(null)}
                 style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  justifyContent: 'space-between',
-                  backgroundColor: 
-                    currentThreadId === thread.id 
-                      ? (nightMode ? '#2a2a2a' : '#ececf1')
-                      : 'transparent',
-                  transition: 'background-color 0.2s ease',
+                  marginBottom: '0.5rem',
                 }}
               >
-                <button
-                  onClick={() => setCurrentThreadId(thread.id)}
+                <div
                   style={{
-                    flex: 1,
+                    width: '100%',
                     textAlign: 'left',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: current.text,
-                    fontSize: '0.875rem',
-                    padding: 0,
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    justifyContent: 'space-between',
+                    backgroundColor: 
+                      currentThreadId === thread.id 
+                        ? (nightMode ? '#2a2a2a' : '#ececf1')
+                        : 'transparent',
+                    transition: 'background-color 0.2s ease',
                   }}
                 >
-                  <span 
-                    style={{
-                      fontSize: '0.875rem',
-                      display: 'block',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {thread.title}
-                  </span>
-                </button>
-                {hoveredThreadId === thread.id && (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteThread(thread.id);
-                    }}
+                    onClick={() => setCurrentThreadId(thread.id)}
                     style={{
-                      padding: '0.25rem',
+                      flex: 1,
+                      textAlign: 'left',
                       background: 'none',
                       border: 'none',
-                      borderRadius: '0.25rem',
                       cursor: 'pointer',
-                      color: '#ef4444',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'background-color 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = nightMode ? '#2a2a2a' : '#f0f0f0';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
+                      color: current.text,
+                      fontSize: '0.875rem',
+                      padding: 0,
                     }}
                   >
-                    <FaTrash size={14} />
+                    <span 
+                      style={{
+                        fontSize: '0.875rem',
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {thread.title}
+                    </span>
                   </button>
-                )}
+                  {hoveredThreadId === thread.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteThread(thread.id);
+                      }}
+                      style={{
+                        padding: '0.25rem',
+                        background: 'none',
+                        border: 'none',
+                        borderRadius: '0.25rem',
+                        cursor: 'pointer',
+                        color: '#ef4444',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'background-color 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = nightMode ? '#2a2a2a' : '#f0f0f0';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <FaTrash size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Sidebar Footer */}
@@ -611,8 +648,19 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
                 ))}
               </div>
             </div>
+          ) : loading && messages.length === 0 ? (
+            <div 
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <LoadingAnimation type="spinner" size="medium" nightMode={nightMode} text="Starting new conversation..." />
+            </div>
           ) : (
-            <MessageList messages={messages} nightMode={nightMode} />
+            <MessageList messages={messages} isLoading={isAIResponding || loading} nightMode={nightMode} />
           )}
         </div>
 

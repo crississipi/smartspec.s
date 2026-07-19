@@ -132,7 +132,15 @@ export default function MessageList({ messages, isLoading = false, nightMode = f
           </motion.div>
         ))}
 
-        {isLoading && <LoadingAnimation messageType={loadingMessageType as any} nightMode={nightMode} />}
+        {isLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <LoadingAnimation type="typing" size="medium" nightMode={nightMode} text="Generating recommendation..." />
+          </motion.div>
+        )}
         <div ref={messagesEndRef} />
       </div>
     </div>

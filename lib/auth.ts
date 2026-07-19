@@ -73,34 +73,46 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
       }
 
-      // Handle Google OAuth
-      if (account?.provider === 'google' && token.email) {
-        // Check if user exists with this email
-        let dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-        });
-
-        // If not, create new user for Google login
-        if (!dbUser) {
-          dbUser = await prisma.user.create({
-            data: {
-              email: token.email,
-              name: token.name || '',
-              googleId: user?.id || account.providerAccountId,
-              password: await hash(Math.random().toString(36).slice(-32), 10),
-            },
+      // Handle Google OAuth - only query db if account is google
+      if (account?.provider === 'google' && token.email && !token.id) {
+        try {
+          // Check if user exists with this email
+          let dbUser = await prisma.user.findUnique({
+            where: { email: token.email },
           });
 
-          // Initialize user preferences
-          await prisma.userPreference.create({
-            data: {
-              userId: dbUser.id,
-              nightMode: false,
-            },
-          });
+          // If not, create new user for Google login
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: {
+                email: token.email,
+                name: token.name || '',
+                googleId: user?.id || account.providerAccountId,
+                password: await hash(Math.random().toString(36).slice(-32), 10),
+              },
+            });
+
+            // Initialize user preferences
+            await prisma.userPreference.create({
+              data: {
+                userId: dbUser.id,
+                nightMode: false,
+              },
+            });
+          } else {
+            // Update googleId if not already set
+            if (!dbUser.googleId) {
+              await prisma.user.update({
+                where: { id: dbUser.id },
+                data: { googleId: user?.id || account.providerAccountId },
+              });
+            }
+          }
+
+          token.id = dbUser.id.toString();
+        } catch (error) {
+          console.error('JWT callback error:', error);
         }
-
-        token.id = dbUser.id.toString();
       }
 
       return token;
@@ -115,19 +127,25 @@ export const authOptions: NextAuthOptions = {
   events: {
     async signIn({ user, account }) {
       // Initialize user preferences if signing in for the first time
-      if (account?.provider === 'google' && user.email) {
-        const existingPrefs = await prisma.userPreference.findUnique({
-          where: { userId: parseInt(user.id) },
-        });
-
-        if (!existingPrefs) {
-          await prisma.userPreference.create({
-            data: {
-              userId: parseInt(user.id),
-              nightMode: false,
-            },
+      try {
+        if (user?.id) {
+          const userId = typeof user.id === 'string' ? parseInt(user.id) : user.id;
+          
+          const existingPrefs = await prisma.userPreference.findUnique({
+            where: { userId },
           });
+
+          if (!existingPrefs) {
+            await prisma.userPreference.create({
+              data: {
+                userId,
+                nightMode: false,
+              },
+            });
+          }
         }
+      } catch (error) {
+        console.error('SignIn event error:', error);
       }
     },
   },

@@ -15,7 +15,7 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-const COMPONENTS_DATA_DIR = path.join(process.cwd(), 'data', 'components');
+const COMPONENTS_DATA_DIR = path.join(process.cwd(), 'public', 'data', 'components');
 
 // Budget allocation presets (percentages that sum to 1.0)
 const BUDGET_ALLOCATIONS: Record<string, Record<string, number>> = {
@@ -641,6 +641,92 @@ FOR TIPS: Provide detailed advice with bullet points.`;
 }
 
 // ============================================================================
+// SMART BUILD ENGINE INTEGRATION
+// ============================================================================
+
+/**
+ * Load component data for SmartBuildEngine
+ */
+async function loadSmartBuildComponents() {
+  const dataDir = path.join(process.cwd(), 'public', 'data', 'components');
+  
+  const fsPromises = await import('fs/promises');
+  
+  const [cpuData, motherboardData, ramData, gpuData, storageData, psuData, coolerData, caseData] = 
+    await Promise.all([
+      fsPromises.readFile(path.join(dataDir, 'cpu.json'), 'utf-8').then(d => JSON.parse(d)),
+      fsPromises.readFile(path.join(dataDir, 'motherboard.json'), 'utf-8').then(d => JSON.parse(d)),
+      fsPromises.readFile(path.join(dataDir, 'ram.json'), 'utf-8').then(d => JSON.parse(d)),
+      fsPromises.readFile(path.join(dataDir, 'gpu.json'), 'utf-8').then(d => JSON.parse(d)),
+      fsPromises.readFile(path.join(dataDir, 'storage.json'), 'utf-8').then(d => JSON.parse(d)),
+      fsPromises.readFile(path.join(dataDir, 'psu.json'), 'utf-8').then(d => JSON.parse(d)),
+      fsPromises.readFile(path.join(dataDir, 'cooler.json'), 'utf-8').then(d => JSON.parse(d)),
+      fsPromises.readFile(path.join(dataDir, 'case.json'), 'utf-8').then(d => JSON.parse(d)),
+    ]);
+
+  return {
+    cpus: cpuData,
+    motherboards: motherboardData,
+    rams: ramData,
+    gpus: gpuData,
+    storage: storageData,
+    psus: psuData,
+    coolers: coolerData,
+    cases: caseData,
+  };
+}
+
+/**
+ * Convert SmartBuildEngine BuildSelection to aiService format
+ */
+function convertBuildToAIFormat(build: any, tierName: string): any {
+  const components = [
+    convertComponentToAIFormat(build.cpu, 'cpu'),
+    convertComponentToAIFormat(build.motherboard, 'motherboard'),
+    convertComponentToAIFormat(build.ram, 'ram'),
+    build.gpu ? convertComponentToAIFormat(build.gpu, 'gpu') : null,
+    convertComponentToAIFormat(build.storage, 'storage'),
+    convertComponentToAIFormat(build.psu, 'psu'),
+    convertComponentToAIFormat(build.cooler, 'cooler'),
+    convertComponentToAIFormat(build.case, 'case'),
+  ].filter(Boolean);
+
+  return {
+    components,
+    total_cost: build.totalPrice,
+    within_budget: build.budgetUtilization <= 105,
+    budget_utilization: build.budgetUtilization,
+    budget_remaining: 0,
+    build_name: `${tierName.charAt(0).toUpperCase() + tierName.slice(1)} Build`,
+    compatibility_notes: build.compatibilityIssues || [],
+    assumptions: ['Components selected using SmartBuildEngine with compatibility checking'],
+  };
+}
+
+/**
+ * Convert individual component to aiService format
+ */
+function convertComponentToAIFormat(component: any, type: string): Component {
+  return {
+    type,
+    brand: component.brand || 'Unknown',
+    model: component.model || component.name || 'Unknown',
+    price: component.price || 0,
+    currency: 'PHP',
+    image_url: component.image_url || null,
+    source_url: component.link || null,
+    store_name: component.link ? new URL(component.link).hostname : null,
+    reason: `Selected for ${type} - optimized for budget and compatibility`,
+    socket: component.socket,
+    cores: component.cores,
+    vram: component.vram,
+    capacity: component.capacity,
+    form_factor: component.form_factor || component.formFactor,
+    memory_type: component.memory_type,
+  };
+}
+
+// ============================================================================
 // MAIN ORCHESTRATOR
 // ============================================================================
 
@@ -671,10 +757,58 @@ export async function processAIMessage(
     case 'build_recommendation':
       if (budget && budget > 0) {
         responseType = 'recommendation';
-        const tiered = generateTieredBuildsOnline(budget, useCase, location, analysis.performance_needs || [], userMessage);
-        allBuilds = tiered.builds;
-        budgetAnalysis = tiered.budget_analysis;
-        components = allBuilds.balanced?.components || allBuilds.budget?.components || [];
+        // Use SmartBuildEngine for complete PC builds
+        let usingSmartEngine = false;
+        try {
+          aiLog(`[BUILD] Starting SmartBuildEngine for budget: ₱${budget}`, 'INFO');
+          const { SmartBuildEngine } = await import('./smart-build-engine');
+          aiLog(`[BUILD] SmartBuildEngine imported successfully`, 'INFO');
+          
+          const componentData = await loadSmartBuildComponents();
+          aiLog(`[BUILD] Component data loaded: CPUs=${componentData.cpus?.length}, GPUs=${componentData.gpus?.length}, Motherboards=${componentData.motherboards?.length}, RAM=${componentData.rams?.length}, Storage=${componentData.storage?.length}, PSUs=${componentData.psus?.length}, Coolers=${componentData.coolers?.length}, Cases=${componentData.cases?.length}`, 'INFO');
+          
+          const buildEngine = new SmartBuildEngine(componentData);
+          aiLog(`[BUILD] SmartBuildEngine instance created`, 'INFO');
+          
+          const builds = await buildEngine.buildMultipleTiers(budget);
+          aiLog(`[BUILD] buildMultipleTiers completed. Balanced=${!!builds.balanced}, Budget=${!!builds.budget}, HighEnd=${!!builds.high_end}`, 'INFO');
+          
+          if (builds.balanced) {
+            aiLog(`[BUILD] Converting balanced build to AI format. Components: CPU=${!!builds.balanced.cpu}, Mobo=${!!builds.balanced.motherboard}, RAM=${!!builds.balanced.ram}, GPU=${!!builds.balanced.gpu}, Storage=${!!builds.balanced.storage}, PSU=${!!builds.balanced.psu}, Cooler=${!!builds.balanced.cooler}, Case=${!!builds.balanced.case}`, 'INFO');
+            
+            // Convert SmartBuildEngine format to aiService format
+            allBuilds = {
+              balanced: convertBuildToAIFormat(builds.balanced, 'balanced'),
+              budget: builds.budget ? convertBuildToAIFormat(builds.budget, 'budget') : undefined,
+              high_end: builds.high_end ? convertBuildToAIFormat(builds.high_end, 'high_end') : undefined,
+            };
+            
+            components = allBuilds.balanced?.components || [];
+            aiLog(`[BUILD] Final component count: ${components.length}`, 'INFO');
+            
+            budgetAnalysis = {
+              user_budget: budget,
+              is_feasible: builds.balanced.compatible,
+              message: builds.balanced.compatible ? 'Build generated successfully with SmartBuildEngine' : 'Build has compatibility issues',
+              min_required: MINIMUM_BUILD_PRICES[useCase] || MINIMUM_BUILD_PRICES.general,
+            };
+            usingSmartEngine = true;
+            aiLog(`[BUILD] ✓ SmartBuildEngine succeeded with ${components.length} components`, 'INFO');
+          } else {
+            aiLog(`[BUILD] SmartBuildEngine returned no balanced build`, 'WARN');
+            throw new Error('No balanced build generated by SmartBuildEngine');
+          }
+        } catch (error: any) {
+          aiLog(`[BUILD] ✗ SmartBuildEngine failed: ${error.message}`, 'ERROR');
+          aiLog(`[BUILD] Stack trace: ${error.stack}`, 'ERROR');
+          aiLog(`[BUILD] Falling back to legacy method`, 'WARN');
+          // Fallback to old method
+          const tiered = generateTieredBuildsOnline(budget, useCase, location, analysis.performance_needs || [], userMessage);
+          allBuilds = tiered.builds;
+          budgetAnalysis = tiered.budget_analysis;
+          components = allBuilds.balanced?.components || allBuilds.budget?.components || [];
+          aiLog(`[BUILD] Legacy method returned ${components.length} components`, 'INFO');
+        }
       } else if (needsFullBuild) {
         responseType = 'recommendation';
         const result = searchComponentsOnline(userMessage, null, useCase, location);
