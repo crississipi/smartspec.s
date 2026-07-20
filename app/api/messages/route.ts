@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { PrismaClient } from '@prisma/client';
-import { processAIMessage } from '@/lib/aiService';
+import { processMessage, type ConversationMessage } from '@/lib/aiServiceNew';
 
 const prisma = new PrismaClient();
 
@@ -63,31 +63,52 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Get conversation history for context
-    const history = await prisma.message.findMany({
+    // Get conversation history for context (last 10 messages)
+    const historyRecords = await prisma.message.findMany({
       where: { threadId: thread.id },
       orderBy: { createdAt: 'asc' },
-      take: 20,
+      take: 10,
       select: {
         role: true,
         content: true,
+        dataType: true,
       },
     });
 
-    // Process AI response
-    const aiResponseData = await processAIMessage(message, thread.id, history);
+    // Convert to ConversationMessage format
+    const conversationHistory: ConversationMessage[] = historyRecords.map(msg => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+      data_type: msg.dataType || undefined,
+    }));
 
-    if (!aiResponseData.success) {
+    // Process AI response with new architecture
+    console.log('[API] Processing message with new AI service...');
+    const aiResult = await processMessage(message, conversationHistory);
+
+    if (!aiResult.success) {
+      console.error('[API] AI processing failed:', aiResult.error);
       return NextResponse.json({
         success: false,
-        message: aiResponseData.message || 'AI processing failed',
-      });
+        message: aiResult.error || 'AI processing failed',
+      }, { status: 500 });
     }
 
-    const { data } = aiResponseData;
-    const content = data.type === 'recommendation' || data.type === 'upgrade_suggestion' 
-      ? JSON.stringify(data) 
-      : data.ai_message;
+    console.log(`[API] AI processing successful. Intent: ${aiResult.intent}, Data type: ${aiResult.data_type}`);
+
+    // Determine content to save
+    let content: string;
+    let dataType: string;
+
+    if (aiResult.data_type === 'recommendation' || aiResult.data_type === 'upgrade_suggestion') {
+      // Save structured data as JSON
+      content = JSON.stringify(aiResult.data);
+      dataType = aiResult.data_type;
+    } else {
+      // Save text response
+      content = aiResult.response;
+      dataType = 'text';
+    }
 
     // Save AI response
     const aiMessage = await prisma.message.create({
@@ -95,8 +116,7 @@ export async function POST(req: NextRequest) {
         threadId: thread.id,
         role: 'assistant',
         content,
-        dataType: data.type || 'text',
-        recommendationId: aiResponseData.recommendation_id || null,
+        dataType,
       },
     });
 
@@ -111,7 +131,7 @@ export async function POST(req: NextRequest) {
       thread_id: thread.id,
       thread_title: thread.title,
       is_new_thread: isNewThread,
-      request_id: aiResponseData.request_id || null,
+      intent: aiResult.intent,
       user_message: {
         id: userMessage.id,
         role: 'user',
@@ -120,9 +140,9 @@ export async function POST(req: NextRequest) {
       ai_message: {
         id: aiMessage.id,
         role: 'assistant',
-        content,
-        data_type: data.type,
-        data: data.type === 'recommendation' || data.type === 'upgrade_suggestion' ? data : null,
+        content: aiResult.response,
+        data_type: dataType,
+        data: aiResult.data || null,
       },
     });
   } catch (error: any) {

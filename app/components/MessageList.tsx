@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import LoadingAnimation from './LoadingAnimation';
+import AIResponseDisplay from './AIResponseDisplay';
 import RecommendationDisplay from './RecommendationDisplay';
 
 interface Message {
@@ -100,7 +101,7 @@ export default function MessageList({ messages, isLoading = false, nightMode = f
             ) : (
               <div style={{ maxWidth: '100%', width: '100%' }}>
                 {(message.dataType === 'recommendation' || message.dataType === 'upgrade_suggestion') && message.data ? (
-                  <RecommendationDisplay data={message.data} nightMode={nightMode} />
+                  <AIResponseDisplay data={message.data} dataType={message.dataType} nightMode={nightMode} />
                 ) : message.dataType === 'recommendation' || message.dataType === 'upgrade_suggestion' ? (
                   <div 
                     style={{
