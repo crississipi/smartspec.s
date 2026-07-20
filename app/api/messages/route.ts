@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`[API] AI processing successful. Intent: ${aiResult.intent}, Data type: ${aiResult.data_type}`);
+    console.log('[API] AI result data:', JSON.stringify(aiResult.data, null, 2));
 
     // Determine content to save
     let content: string;
@@ -104,10 +105,13 @@ export async function POST(req: NextRequest) {
       // Save structured data as JSON
       content = JSON.stringify(aiResult.data);
       dataType = aiResult.data_type;
+      console.log('[API] Saving as structured JSON. Data type:', dataType);
+      console.log('[API] Content to save:', content.substring(0, 200) + '...');
     } else {
       // Save text response
       content = aiResult.response;
       dataType = 'text';
+      console.log('[API] Saving as text response');
     }
 
     // Save AI response

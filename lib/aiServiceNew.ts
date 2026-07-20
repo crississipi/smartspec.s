@@ -150,11 +150,16 @@ async function handleBuildRecommendation(
   // Parse AI response to extract structured data
   const parsedData = parseAIBuildResponse(aiResponse.content);
 
+  // Enrich with images and links from component database
+  console.log('[BuildRecommendation] Enriching components with images and links...');
+  const { enrichBuildRecommendation } = await import('./componentEnricher');
+  const enrichedData = await enrichBuildRecommendation(parsedData);
+
   return {
     success: true,
     intent: 'build_recommendation',
     response: aiResponse.content,
-    data: parsedData,
+    data: enrichedData,
     data_type: 'recommendation',
   };
 }
@@ -229,11 +234,16 @@ async function handleComponentUpgrade(
   // Parse AI response
   const parsedData = parseAIUpgradeResponse(aiResponse.content, componentType);
 
+  // Enrich with images and links from component database
+  console.log('[ComponentUpgrade] Enriching upgrade options with images and links...');
+  const { enrichUpgradeRecommendations } = await import('./componentEnricher');
+  const enrichedData = await enrichUpgradeRecommendations(parsedData);
+
   return {
     success: true,
     intent: 'component_upgrade',
     response: aiResponse.content,
-    data: parsedData,
+    data: enrichedData,
     data_type: 'upgrade_suggestion',
   };
 }

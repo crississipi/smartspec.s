@@ -38,9 +38,54 @@ export default function AIResponseDisplay({ data, dataType, nightMode = false }:
  * Display PC Build Recommendation from AI
  */
 function BuildRecommendationDisplay({ data, nightMode }: { data: any; nightMode: boolean }) {
+  console.log('[BuildRecommendation] Received data:', JSON.stringify(data, null, 2));
+  
   if (!data?.build) {
     console.warn('[BuildRecommendation] Missing build data');
-    return <ErrorDisplay message="Invalid build data received" nightMode={nightMode} />;
+    console.warn('[BuildRecommendation] Data structure:', data);
+    
+    // Try to handle alternative data structures
+    // Check if data itself is the build (direct format)
+    if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+      const possibleComponents = ['cpu', 'motherboard', 'ram', 'gpu', 'storage', 'psu', 'cooler', 'case'];
+      const hasComponents = possibleComponents.some(key => data[key]);
+      
+      if (hasComponents) {
+        console.log('[BuildRecommendation] Using direct build format');
+        // Data is directly the build object
+        const build = data;
+        const components = Object.entries(build)
+          .filter(([key]) => possibleComponents.includes(key.toLowerCase()))
+          .map(([type, component]: [string, any]) => ({
+            type: type.toUpperCase(),
+            brand: component.brand || '',
+            model: component.model || '',
+            price: component.price || 0,
+            currency: 'PHP',
+            image_url: component.image_url || null,
+            link: component.link || null,
+            reason: component.reason || '',
+            socket: component.socket,
+            memory_type: component.memory_type,
+            wattage: component.wattage,
+          }));
+        
+        const total_price = components.reduce((sum, c) => sum + c.price, 0);
+        
+        return <BuildRecommendationDisplay 
+          data={{ 
+            build, 
+            total_price, 
+            budget_remaining: 0,
+            compatibility_notes: data.compatibility_notes,
+            summary: data.summary 
+          }} 
+          nightMode={nightMode} 
+        />;
+      }
+    }
+    
+    return <ErrorDisplay message="Invalid build data received. Please try again." nightMode={nightMode} />;
   }
 
   const { build, total_price, budget_remaining, compatibility_notes, summary } = data;

@@ -92,13 +92,17 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
               // Only parse if content is actually JSON (starts with { or [)
               if (msg.content && typeof msg.content === 'string' && 
                   (msg.content.trim().startsWith('{') || msg.content.trim().startsWith('['))) {
-                msg.data = JSON.parse(msg.content);
+                const parsedData = JSON.parse(msg.content);
+                console.log('[ChatInterface] Parsed message data:', parsedData);
+                msg.data = parsedData;
               } else {
+                console.warn('[ChatInterface] Content is not JSON:', msg.content);
                 // If content is not JSON, treat as regular text
                 msg.dataType = 'text';
               }
             } catch (e) {
-              console.error('Failed to parse message data:', e);
+              console.error('[ChatInterface] Failed to parse message data:', e);
+              console.error('[ChatInterface] Content was:', msg.content);
               // Keep as text message if parsing fails
               msg.dataType = 'text';
             }
@@ -165,6 +169,10 @@ export default function ChatInterface({ user, nightMode, setNightMode, onLogout 
 
       const data = await res.json();
       if (data.success) {
+        console.log('[ChatInterface] API Response:', data);
+        console.log('[ChatInterface] AI message data type:', data.ai_message?.data_type);
+        console.log('[ChatInterface] AI message data:', data.ai_message?.data);
+        
         // Parse AI message data if structured
         const aiMessage = data.ai_message;
         if (aiMessage.data_type === 'recommendation' || aiMessage.data_type === 'upgrade_suggestion') {
